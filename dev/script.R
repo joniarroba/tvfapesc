@@ -2,14 +2,13 @@ library(rio)
 library(tidyverse)
 library(inspectdf)
 library(janitor)
-library(sparklyr)
 
 
 # Leitura da RAIS
 df <- import(file = "extdata/RAIS_SC_18.csv",  encoding = "Latin-1")
 df <- clean_names(df)
 df <- df %>% mutate(municipio = as.character(municipio)) %>% rename(codigo_municipio_completo = municipio)
-df <- df %>% mutate_all(as.character) 
+df <- df %>% mutate_all(as.character)
 #mantendo somente funcionarios ativos
 df <- df %>% filter(motivo_desligamento == 0 )
 
@@ -19,64 +18,56 @@ df <- df %>% filter(motivo_desligamento == 0 )
 
 col_numericas <- c("faixa_etaria",
                    "faixa_hora_contrat",
-                   "faixa_remun_dezem_sm", 
-                   "faixa_remun_media_sm", 
-                   "faixa_tempo_emprego", 
+                   "faixa_remun_dezem_sm",
+                   "faixa_remun_media_sm",
+                   "faixa_tempo_emprego",
                    "escolaridade_apos_2005",
-                   "qtd_hora_contr", 
-                   "idade", 
+                   "qtd_hora_contr",
+                   "idade",
                    "qtd_dias_afastamento",
                    "vl_remun_dezembro_nom",
                    "vl_remun_dezembro_sm",
                    "vl_remun_media_nom",
                    "vl_remun_media_sm",
-                   "tempo_emprego", 
-                   "vl_rem_janeiro_cc" ,    
+                   "tempo_emprego",
+                   "vl_rem_janeiro_cc" ,
                    "vl_rem_fevereiro_cc",
                    "vl_rem_marco_cc",
-                   "vl_rem_abril_cc" ,  
-                   "vl_rem_maio_cc" ,  
-                   "vl_rem_junho_cc" ,  
-                   "vl_rem_julho_cc",       
-                   "vl_rem_agosto_cc",       
-                   "vl_rem_setembro_cc",     
-                   "vl_rem_outubro_cc",     
-                   "vl_rem_novembro_cc"  
+                   "vl_rem_abril_cc" ,
+                   "vl_rem_maio_cc" ,
+                   "vl_rem_junho_cc" ,
+                   "vl_rem_julho_cc",
+                   "vl_rem_agosto_cc",
+                   "vl_rem_setembro_cc",
+                   "vl_rem_outubro_cc",
+                   "vl_rem_novembro_cc"
 )
 
-cal_fatores <- c("causa_afastamento_1", 
-                 "causa_afastamento_2", 
-                 "causa_afastamento_3", 
-                 "motivo_desligamento", 
-                 "cbo_ocupacao_2002", 
-                 "cnae_2_0_classe", 
+cal_fatores <- c("causa_afastamento_1",
+                 "causa_afastamento_2",
+                 "causa_afastamento_3",
+                 "motivo_desligamento",
+                 "cbo_ocupacao_2002",
+                 "cnae_2_0_classe",
                  "cnae_95_classe",
-                 "vinculo_ativo_31_12", 
-                 "ind_cei_vinculado", 
-                 "ind_simples", 
-                 "mes_admissao", 
-                 "mes_desligamento", 
-                 "nacionalidade", 
-                 "natureza_juridica", 
-                 "ind_portador_defic", 
-                 "raca_cor", 
-                 "regioes_adm_df", 
-                 "cnae_2_0_subclasse", 
-                 "sexo_trabalhador", 
-                 "tamanho_estabelecimento", 
-                 "tipo_admissao", 
-                 "tipo_estab", 
-                 "tipo_vinculo", 
+                 "vinculo_ativo_31_12",
+                 "ind_cei_vinculado",
+                 "ind_simples",
+                 "mes_admissao",
+                 "mes_desligamento",
+                 "nacionalidade",
+                 "natureza_juridica",
+                 "ind_portador_defic",
+                 "raca_cor",
+                 "regioes_adm_df",
+                 "cnae_2_0_subclasse",
+                 "sexo_trabalhador",
+                 "tamanho_estabelecimento",
+                 "tipo_admissao",
+                 "tipo_estab",
+                 "tipo_vinculo",
                  "ibge_subsetor"
 )
-
-
-
-
-
-
-
-
 
 
 # Flags -------------------------------------------------------------------
@@ -101,122 +92,137 @@ df <- df %>% mutate(vl_remun_media_sm = as.numeric(vl_remun_media_sm))
 df <- df %>% mutate(idade = as.numeric(idade))
 df <- df %>% mutate(qtd_hora_contr = as.numeric(qtd_hora_contr))
 
-# t <- df %>% select(vl_salario_contratual,vl_remun_media_nom, vl_remun_media_sm, vl_rem_janeiro_cc, 
-#                    vl_rem_fevereiro_cc, vl_rem_marco_cc, vl_rem_abril_cc, vl_rem_maio_cc, vl_rem_junho_cc, vl_rem_julho_cc, vl_rem_agosto_cc, 
+# t <- df %>% select(vl_salario_contratual,vl_remun_media_nom, vl_remun_media_sm, vl_rem_janeiro_cc,
+#                    vl_rem_fevereiro_cc, vl_rem_marco_cc, vl_rem_abril_cc, vl_rem_maio_cc, vl_rem_junho_cc, vl_rem_julho_cc, vl_rem_agosto_cc,
 #                    vl_rem_setembro_cc, vl_rem_outubro_cc, vl_rem_novembro_cc, vl_remun_dezembro_nom, motivo_desligamento)
 
 
 # Organização dos municípios ----------------------------------------------
 
 mu <- import(file = "extdata/TabMunicipios.csv", encoding = "Latin-1")
-mu <- clean_names(mu) 
+mu <- clean_names(mu)
 mu <- mu %>% mutate(codigo_municipio_completo = as.character(codigo_municipio_completo))
 mu <- mu %>% mutate(codigo_municipio_completo = gsub(x = codigo_municipio_completo, pattern = '.{1}$', replacement = ''))
 glimpse(mu)
 
+macro_d_para <- read_csv("extdata/macro_regioes/Macroreg-DPARA.csv")
+macro_d_para <- macro_d_para %>% select(-municipio)
+glimpse(macro_d_para)
+macro_d_para <- macro_d_para %>% rename(codigo_municipio_completo = codigo)
+macro_d_para <- macro_d_para %>% mutate(codigo_municipio_completo = as.character(codigo_municipio_completo))
+glimpse(macro_d_para)
+#macro_d_para <- macro_d_para %>% mutate(codigo_municipio_completo = gsub(x = codigo_municipio_completo, pattern = '.{1}$', replacement = ''))
 
+mu <- mu %>% left_join(macro_d_para, by = "codigo_municipio_completo") %>% filter(uf == 42)
+glimpse(mu)
 
 # CNAES -------------------------------------------------------------------
 
-cnaes <- read_delim("extdata/cnae/cnaes_fecha_abre.csv", 
+cnaes <- read_delim("extdata/cnae/cnaes_fecha_abre.csv",
                                ";", escape_double = FALSE, trim_ws = TRUE)
-cnaes <- clean_names(cnaes) 
+cnaes <- clean_names(cnaes)
 names(cnaes)
 cnaes <- cnaes %>% rename(cnae_2_0_classe = codigo_cnae)
 cnaes <- cnaes %>% mutate(cnae_2_0_classe = substr(x = cnae_2_0_classe, start = 1, stop = 5))
 
-cnaes <- cnaes %>% distinct(cnae_2_0_classe, .keep_all = TRUE) 
+cnaes <- cnaes %>% distinct(cnae_2_0_classe, .keep_all = TRUE)
 
+pesos_impacto_atividades <- read_delim("extdata/cnae/pesos_impacto_atividades.csv",
+                                       ";", escape_double = FALSE, locale = locale(decimal_mark = ",",
+                                                                                   grouping_mark = "."), trim_ws = TRUE)
+
+pesos_impacto_atividades <- pesos_impacto_atividades %>% rename(ate_29_03 = status_atividade)
+
+cnaes <- cnaes %>% left_join(pesos_impacto_atividades)
+glimpse(cnaes)
 
 
 
 # Integrando as bases -----------------------------------------------------
 
 combinado <- df %>% left_join(mu)
-combinado <- combinado %>% left_join(cnaes)
-
-
-# Produto -----------------------------------------------------------------
-
-percentual_g_risco_atividade <- combinado %>% 
-  group_by(municipio) %>% 
-  summarise(n_total_g_risco_no_mun = sum(g_risco), 
-            n_individuos_municipio = n(), 
-            percentual_g_risco_municipio = mean(g_risco)*100)
-  
-percentual_ativ_afetadas <- combinado %>% 
-  group_by(ate_29_03) %>% 
-  summarise(n_individos_afetados = n(), 
-            soma_salarios = sum(vl_salario_contratual),
-            media_salarios = mean(vl_salario_contratual))
-
-export(percentual_ativ_afetadas, file = "extdata/Rais/pesos_atividades.csv")
-
-  
-  tally() 
-
-  
-
-
-produto <- combinado %>% 
-  group_by(, cnae_2_0_classe) %>% 
-  summarise(m_idade = round(mean(idade), digits = 0), 
-            n_individuos = n(),
-            n_individuos_g_risco_cnae = sum(g_risco),
-            percentual_g_risco_cnae = mean(g_risco)*100,  
-            qtd_hora_contr = mean(qtd_hora_contr),
-            tempo_emprego = mean(tempo_emprego)/12, 
-            media_vl_salario_contratual = median(vl_salario_contratual))
-
-
-percentual_g_risco_mun =  n_individuos_g_risco_cnae / n_total_g_risco_no_mun * 100)
-
-
-nome_municipio, descricao_do_cnae
-%>% 
-  summarise(m_idade = round(mean(idade), digits = 0), 
-            n_individuos = n(),
-            n_individuos_g_risco_cnae = sum(g_risco),
-            percentual_g_risco_cnae = mean(g_risco)*100, 
-            percentual_g_risco_mun =  n_individuos_g_risco_cnae / n_total_g_risco_no_mun * 100,
-            qtd_hora_contr = mean(qtd_hora_contr),
-            tempo_emprego = mean(tempo_emprego)/12, 
-            media_vl_salario_contratual = median(vl_salario_contratual)) %>% 
-  ungroup() %>% 
-  group_by(municipio) 
-  
-
-
-
-
-# mercado casas -----------------------------------------------------------
-
-mercado <- combinado %>% filter(vl_salario_contratual < 7000) %>%
-  filter(microrregiao_geografica == 16) %>% 
-  group_by(nome_municipio) %>% 
-  summarise(m_idade = round(mean(idade), digits = 0), 
-            contagem = n(),
-            percentual_g_risco = mean(g_risco), 
-            qtd_hora_contr = mean(qtd_hora_contr),
-            tempo_emprego = mean(tempo_emprego)/12, 
-            media_vl_salario_contratual = mean(vl_salario_contratual))
-
-export(mercado,file = "mercado_abaixo_7mil_mircroregiao_fpolis.xlsx")
-
 glimpse(combinado)
 
-t <- inspect_cat(combinado)
+combinado <- combinado %>% left_join(cnaes)
+glimpse(combinado)
 
-summary(combinado)
+#retirada de NAs
+combinado$peso_impacto_status <- combinado$peso_impacto_status %>% replace_na(replace = 0)
 
-cardiologia <- combinado %>% filter(cbo_ocupacao_2002 == 225120) %>% 
-  group_by(nome_municipio) %>% 
-  summarise(m_idade = round(mean(idade), digits = 0), 
-            contagem = n(),
-            percentual_g_risco = mean(g_risco), 
-            qtd_hora_contr = mean(qtd_hora_contr),
-            tempo_emprego = mean(tempo_emprego)/12, 
-            media_vl_salario_contratual = mean(vl_salario_contratual))
+glimpse(combinado$peso_impacto_status)
+
+
+# Número de atingidos até 29 --------------------------------------------------------------
+
+#Financeiro para cada status
+result <- combinado %>%
+  group_by(municipio, ate_29_03) %>%
+  summarise(nome_municipio = last(nome_municipio),
+            macrorregiao = last(macrorregiao),
+            n_individos_afetados = n(),
+            #soma_salarios = sum(vl_salario_contratual),
+            media_salarios = mean(vl_salario_contratual),
+            media_impacto = mean(peso_impacto_status),
+            n_ind_por_media_salario_peso_impacto =  n_individos_afetados * media_salarios * media_impacto) %>%
+  spread(key = ate_29_03, value = n_ind_por_media_salario_peso_impacto, fill = 0) %>%
+  ungroup()
+
+#Financeiro de cada municipio
+total_fin_mun <- combinado %>%
+  group_by(municipio) %>%
+  summarise(total_bruto = sum(vl_salario_contratual))
+
+
+#total financeiro com os pesos de cada município
+result2 <- result %>%
+  group_by(municipio) %>%
+    summarise(nome_municipio = last(nome_municipio),
+              macrorregiao = last(macrorregiao),
+    across(`Autorizada, com restrição a serviços presenciais.` : `<NA>` , .fns = sum),
+    total_afetado = sum(`Autorizada, com restrição a serviços presenciais.`)) %>%
+    left_join(total_fin_mun) %>%
+    mutate(impacto_fin =  total_afetado / total_bruto * 100)
+
+
+export(result2, file = "extdata/macro_regioes/impacto_por_cidades.csv")
+
+table(is.na(result2$nome_municipio))
+
+#
+# # Grupo de risco  - desenvolvendo
+#
+# produto <- combinado %>%
+#   group_by(municipio, cnae_2_0_classe) %>%
+#   summarise(m_idade = round(mean(idade), digits = 0),
+#             n_individuos = n(),
+#             n_individuos_g_risco_cnae = sum(g_risco),
+#             percentual_g_risco_cnae = mean(g_risco)*100,
+#             qtd_hora_contr = mean(qtd_hora_contr),
+#             tempo_emprego = mean(tempo_emprego)/12,
+#             media_vl_salario_contratual = median(vl_salario_contratual))
+#
+#
+# percentual_g_risco_mun =  n_individuos_g_risco_cnae / n_total_g_risco_no_mun * 100)
+#
+#
+# nome_municipio, descricao_do_cnae
+# %>%
+#   summarise(m_idade = round(mean(idade), digits = 0),
+#             n_individuos = n(),
+#             n_individuos_g_risco_cnae = sum(g_risco),
+#             percentual_g_risco_cnae = mean(g_risco)*100,
+#             percentual_g_risco_mun =  n_individuos_g_risco_cnae / n_total_g_risco_no_mun * 100,
+#             qtd_hora_contr = mean(qtd_hora_contr),
+#             tempo_emprego = mean(tempo_emprego)/12,
+#             media_vl_salario_contratual = median(vl_salario_contratual)) %>%
+#   ungroup() %>%
+#   group_by(municipio)
+#
+#
+#
+
+
+
 
 
 

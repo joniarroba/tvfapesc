@@ -3,6 +3,7 @@ library(tidyverse)
 library(inspectdf)
 library(janitor)
 
+#2
 
 # Leitura da RAIS
 df <- import(file = "extdata/RAIS_SC_18.csv",  encoding = "Latin-1")

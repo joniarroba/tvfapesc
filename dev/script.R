@@ -80,7 +80,7 @@ pesos_impacto_atividades <- read_delim("extdata/cnae/pesos_impacto_atividades.cs
 
 pesos_impacto_atividades <- pesos_impacto_atividades %>% rename(ate_29_03 = status_atividade)
 
-#pesos_impacto_atividades$peso_impacto_status <- 1
+#pesos_impacto_atividades$peso_impacto_status <- 0
 
 cnaes <- cnaes %>% left_join(pesos_impacto_atividades)
 glimpse(cnaes)
@@ -99,6 +99,8 @@ glimpse(combinado)
 
 combinado$peso_impacto_status <- combinado$peso_impacto_status %>% replace_na(replace = mean(combinado$peso_impacto_status, na.rm = T))
 
+
+
 glimpse(combinado)
 
 
@@ -113,9 +115,11 @@ result <- combinado %>%
             media_salarios = mean(vl_salario_contratual),
             soma_salarios = sum(vl_salario_contratual),
             media_impacto = mean(peso_impacto_status),
-            financeiro_impactado =  n_individos_afetados * media_salarios * media_impacto,
-            percentual_impacto = financeiro_impactado / soma_salarios * 100
+            financeiro_impactado =  n_individos_afetados * media_salarios * media_impacto
+            #percentual_impacto = financeiro_impactado / soma_salarios * 100
             )
+
+export(result, file = "extdata/restultados_gutai/impactoMuniciopios_primeira_semana.xlsx")
 
 #Caso quiser saber qual foi o impacto por setor
 #%>%
@@ -128,7 +132,9 @@ result <- combinado %>%
 macro_regiao <- result %>%
   group_by(macrorregiao) %>%
   summarise(n_municipios= n(),
-            impacto_financeiro_social = mean(percentual_impacto))
+            impactoMacroRegional = mean(media_impacto) *100)
+
+export(macro_regiao, file = "extdata/restultados_gutai/macroregiões.xlsx")
 
 
 

@@ -14,60 +14,6 @@ df <- df %>% filter(motivo_desligamento == 0 )
 
 
 
-# Tipos de variaveis ------------------------------------------------------
-
-col_numericas <- c("faixa_etaria",
-                   "faixa_hora_contrat",
-                   "faixa_remun_dezem_sm",
-                   "faixa_remun_media_sm",
-                   "faixa_tempo_emprego",
-                   "escolaridade_apos_2005",
-                   "qtd_hora_contr",
-                   "idade",
-                   "qtd_dias_afastamento",
-                   "vl_remun_dezembro_nom",
-                   "vl_remun_dezembro_sm",
-                   "vl_remun_media_nom",
-                   "vl_remun_media_sm",
-                   "tempo_emprego",
-                   "vl_rem_janeiro_cc" ,
-                   "vl_rem_fevereiro_cc",
-                   "vl_rem_marco_cc",
-                   "vl_rem_abril_cc" ,
-                   "vl_rem_maio_cc" ,
-                   "vl_rem_junho_cc" ,
-                   "vl_rem_julho_cc",
-                   "vl_rem_agosto_cc",
-                   "vl_rem_setembro_cc",
-                   "vl_rem_outubro_cc",
-                   "vl_rem_novembro_cc"
-)
-
-cal_fatores <- c("causa_afastamento_1",
-                 "causa_afastamento_2",
-                 "causa_afastamento_3",
-                 "motivo_desligamento",
-                 "cbo_ocupacao_2002",
-                 "cnae_2_0_classe",
-                 "cnae_95_classe",
-                 "vinculo_ativo_31_12",
-                 "ind_cei_vinculado",
-                 "ind_simples",
-                 "mes_admissao",
-                 "mes_desligamento",
-                 "nacionalidade",
-                 "natureza_juridica",
-                 "ind_portador_defic",
-                 "raca_cor",
-                 "regioes_adm_df",
-                 "cnae_2_0_subclasse",
-                 "sexo_trabalhador",
-                 "tamanho_estabelecimento",
-                 "tipo_admissao",
-                 "tipo_estab",
-                 "tipo_vinculo",
-                 "ibge_subsetor"
-)
 
 
 # Flags -------------------------------------------------------------------
@@ -133,6 +79,8 @@ pesos_impacto_atividades <- read_delim("extdata/cnae/pesos_impacto_atividades.cs
 
 pesos_impacto_atividades <- pesos_impacto_atividades %>% rename(ate_29_03 = status_atividade)
 
+#pesos_impacto_atividades$peso_impacto_status <- 1
+
 cnaes <- cnaes %>% left_join(pesos_impacto_atividades)
 glimpse(cnaes)
 
@@ -147,25 +95,43 @@ combinado <- combinado %>% left_join(cnaes)
 glimpse(combinado)
 
 #retirada de NAs
-combinado$peso_impacto_status <- combinado$peso_impacto_status %>% replace_na(replace = 0)
 
-glimpse(combinado$peso_impacto_status)
+combinado$peso_impacto_status <- combinado$peso_impacto_status %>% replace_na(replace = mean(combinado$peso_impacto_status, na.rm = T))
+
+glimpse(combinado)
 
 
 # Número de atingidos até 29 --------------------------------------------------------------
 
-#Financeiro para cada status
+#Impacto financeiro percentual por município
 result <- combinado %>%
-  group_by(municipio, ate_29_03) %>%
+  group_by(municipio) %>%
   summarise(nome_municipio = last(nome_municipio),
             macrorregiao = last(macrorregiao),
             n_individos_afetados = n(),
-            #soma_salarios = sum(vl_salario_contratual),
             media_salarios = mean(vl_salario_contratual),
+            soma_salarios = sum(vl_salario_contratual),
             media_impacto = mean(peso_impacto_status),
-            n_ind_por_media_salario_peso_impacto =  n_individos_afetados * media_salarios * media_impacto) %>%
-  spread(key = ate_29_03, value = n_ind_por_media_salario_peso_impacto, fill = 0) %>%
-  ungroup()
+            financeiro_impactado =  n_individos_afetados * media_salarios * media_impacto,
+            percentual_impacto = financeiro_impactado / soma_salarios * 100
+            )
+
+#Caso quiser saber qual foi o impacto por setor
+#%>%
+#spread(key = ate_29_03, value = n_ind_por_media_salario_peso_impacto, fill = 0) %>%
+#ungroup()
+
+
+# Impacto percentual por macro região -------------------------------------
+
+macro_regiao <- result %>%
+  group_by(macrorregiao) %>%
+  summarise(n_municipios= n(),
+            impacto_financeiro_social = mean(percentual_impacto))
+
+
+
+
 
 #Financeiro de cada municipio
 total_fin_mun <- combinado %>%
@@ -184,9 +150,9 @@ result2 <- result %>%
     mutate(impacto_fin =  total_afetado / total_bruto * 100)
 
 
-export(result2, file = "extdata/macro_regioes/impacto_por_cidades.csv")
+#export(result2, file = "extdata/macro_regioes/impacto_por_cidades.csv")
 
-table(is.na(result2$nome_municipio))
+#table(is.na(result2$nome_municipio))
 
 #
 # # Grupo de risco  - desenvolvendo

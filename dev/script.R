@@ -3,88 +3,16 @@ library(tidyverse)
 library(inspectdf)
 library(janitor)
 
-#2
 
-# Leitura da RAIS
-df <- import(file = "extdata/RAIS_SC_18.csv",  encoding = "Latin-1")
-df <- clean_names(df)
-df <- df %>% mutate(municipio = as.character(municipio)) %>% rename(codigo_municipio_completo = municipio)
-df <- df %>% mutate_all(as.character)
-#mantendo somente funcionarios ativos
-df <- df %>% filter(motivo_desligamento == 0 )
+#Leitura do DF
+df <- ler_rais()
 
-
-
-
-
-# Flags -------------------------------------------------------------------
-
-df <- df %>% mutate(g_risco = if_else(idade > 60, 1, 0))
-
-# Replacements ------------------------------------------------------------
-
-
-df <- df %>% mutate(tempo_emprego = str_replace(tempo_emprego, pattern = ",", "."))
-df <- df %>% mutate(tempo_emprego = as.numeric(tempo_emprego))
-
-df <- df %>% mutate(vl_salario_contratual = str_replace(vl_salario_contratual, ",", "."))
-df <- df %>% mutate(vl_salario_contratual = as.numeric(vl_salario_contratual))
-
-df <- df %>% mutate(vl_remun_media_nom = str_replace(vl_remun_media_nom, ",", "."))
-df <- df %>% mutate(vl_remun_media_nom = as.numeric(vl_remun_media_nom))
-
-df <- df %>% mutate(vl_remun_media_sm = str_replace(vl_remun_media_sm, ",", "."))
-df <- df %>% mutate(vl_remun_media_sm = as.numeric(vl_remun_media_sm))
-
-df <- df %>% mutate(idade = as.numeric(idade))
-df <- df %>% mutate(qtd_hora_contr = as.numeric(qtd_hora_contr))
-
-# t <- df %>% select(vl_salario_contratual,vl_remun_media_nom, vl_remun_media_sm, vl_rem_janeiro_cc,
-#                    vl_rem_fevereiro_cc, vl_rem_marco_cc, vl_rem_abril_cc, vl_rem_maio_cc, vl_rem_junho_cc, vl_rem_julho_cc, vl_rem_agosto_cc,
-#                    vl_rem_setembro_cc, vl_rem_outubro_cc, vl_rem_novembro_cc, vl_remun_dezembro_nom, motivo_desligamento)
-
-
-# Organização dos municípios ----------------------------------------------
-
-mu <- import(file = "extdata/TabMunicipios.csv", encoding = "Latin-1")
-mu <- clean_names(mu)
-mu <- mu %>% mutate(codigo_municipio_completo = as.character(codigo_municipio_completo))
-mu <- mu %>% mutate(codigo_municipio_completo = gsub(x = codigo_municipio_completo, pattern = '.{1}$', replacement = ''))
-glimpse(mu)
-
-macro_d_para <- read_csv("extdata/macro_regioes/Macroreg-DPARA.csv")
-macro_d_para <- macro_d_para %>% select(-municipio)
-glimpse(macro_d_para)
-macro_d_para <- macro_d_para %>% rename(codigo_municipio_completo = codigo)
-macro_d_para <- macro_d_para %>% mutate(codigo_municipio_completo = as.character(codigo_municipio_completo))
-glimpse(macro_d_para)
-#macro_d_para <- macro_d_para %>% mutate(codigo_municipio_completo = gsub(x = codigo_municipio_completo, pattern = '.{1}$', replacement = ''))
-
-mu <- mu %>% left_join(macro_d_para, by = "codigo_municipio_completo") %>% filter(uf == 42)
-glimpse(mu)
+#Leitura dos muncípios
+mu <- ler_municipios()
 
 # CNAES -------------------------------------------------------------------
 
-cnaes <- read_delim("extdata/cnae/cnaes_fecha_abre.csv",
-                               ";", escape_double = FALSE, trim_ws = TRUE)
-cnaes <- clean_names(cnaes)
-names(cnaes)
-cnaes <- cnaes %>% rename(cnae_2_0_classe = codigo_cnae)
-cnaes <- cnaes %>% mutate(cnae_2_0_classe = substr(x = cnae_2_0_classe, start = 1, stop = 5))
-
-cnaes <- cnaes %>% distinct(cnae_2_0_classe, .keep_all = TRUE)
-
-pesos_impacto_atividades <- read_delim("extdata/cnae/pesos_impacto_atividades.csv",
-                                       ";", escape_double = FALSE, locale = locale(decimal_mark = ",",
-                                                                                   grouping_mark = "."), trim_ws = TRUE)
-
-pesos_impacto_atividades <- pesos_impacto_atividades %>% rename(ate_29_03 = status_atividade)
-
-#pesos_impacto_atividades$peso_impacto_status <- 0
-
-cnaes <- cnaes %>% left_join(pesos_impacto_atividades)
-glimpse(cnaes)
-
+cnaes <- ler_cnaes()
 
 
 # Integrando as bases -----------------------------------------------------
